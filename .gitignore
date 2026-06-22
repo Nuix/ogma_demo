@@ -1,0 +1,36 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+coverage/
+
+# Environment files — copy .env.example and fill in
+.env
+backend/.env
+frontend/.env
+
+# Build outputs
+backend/dist/
+frontend/dist/
+
+# Ogma commercial library — obtain a licence from Linkurious and extract to frontend/public/ogma/
+ogma/
+frontend/public/ogma/
+
+# Claude Code local settings (contains server IPs, key paths, etc.)
+.claude/settings.local.json
+
+# Nuix brand assets — not for public distribution
+brand_center/
+*.pdf
+
+# Personal / deployment-specific files
+OUT_OF_OFFICE.md
+sightings.json
+
+# Scratch / test data
+seed_statement.json
+populate_statements.json
+test_statement.json
+insert_person.sql
+C:WindowsTempgraph.json

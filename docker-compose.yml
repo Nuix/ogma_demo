@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://backend:3001
+      - BASE_PATH=/demo
+      - CHOKIDAR_USEPOLLING=true
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://${DB_USER:-witness}:${DB_PASSWORD:-witnesspass}@db:5432/${DB_NAME:-witness_board}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - ANTHROPIC_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+      - TARGET_NAME=Cameron Stiller
+      - LAST_SEEN_DATE=2026-06-26
+      - CASE_START_NUMBER=1000
+      - CORS_ORIGIN=http://localhost:3000
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX_REQUESTS=100
+      - POLL_URL=https://raw.githubusercontent.com/camstillhere/holiday_pins/main/sightings.json
+      - POLL_INTERVAL_MS=300000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER:-witness}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-witnesspass}
+      - POSTGRES_DB=${DB_NAME:-witness_board}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-witness}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

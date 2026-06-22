@@ -1,0 +1,46 @@
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Build with BASE_PATH support
+ARG BASE_PATH=/where_is_cameron
+ENV BASE_PATH=${BASE_PATH}
+RUN npm run build -- --mode production
+
+# Production image
+FROM nginx:alpine
+
+# Copy built assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Configure nginx for SPA with subpath support
+# Note: For /where_is_cameron subpath, nginx upstream proxy should strip the prefix
+# This config assumes files are served from root but accessed via /where_is_cameron
+COPY <<'EOF' /etc/nginx/conf.d/default.conf
+server {
+    listen 3000;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Health check
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]

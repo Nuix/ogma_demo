@@ -1,0 +1,12 @@
+apiVersion: v2
+name: operation-find-cameron
+description: Interactive witness board / knowledge graph for an out-of-office experience at Nuix
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: postgresql
+    version: "~13.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

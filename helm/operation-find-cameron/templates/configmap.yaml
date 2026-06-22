@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "operation-find-cameron.fullname" . }}-config
+  labels:
+    {{- include "operation-find-cameron.labels" . | nindent 4 }}
+data:
+  # ---- Frontend ----
+  BASE_PATH: {{ .Values.frontend.env.BASE_PATH | quote }}
+  VITE_API_URL: {{ .Values.frontend.env.VITE_API_URL | quote }}
+
+  # ---- Backend ----
+  NODE_ENV: {{ .Values.backend.env.NODE_ENV | quote }}
+  PORT: {{ .Values.backend.env.PORT | quote }}
+  TARGET_NAME: {{ .Values.backend.env.TARGET_NAME | quote }}
+  LAST_SEEN_DATE: {{ .Values.backend.env.LAST_SEEN_DATE | quote }}
+  CASE_START_NUMBER: {{ .Values.backend.env.CASE_START_NUMBER | quote }}
+  CORS_ORIGIN: {{ .Values.backend.env.CORS_ORIGIN | quote }}
+  RATE_LIMIT_WINDOW_MS: {{ .Values.backend.env.RATE_LIMIT_WINDOW_MS | quote }}
+  RATE_LIMIT_MAX_REQUESTS: {{ .Values.backend.env.RATE_LIMIT_MAX_REQUESTS | quote }}
+  POLL_URL: {{ .Values.backend.env.POLL_URL | quote }}
+  POLL_INTERVAL_MS: {{ .Values.backend.env.POLL_INTERVAL_MS | quote }}
+  ANTHROPIC_MODEL: {{ .Values.backend.env.ANTHROPIC_MODEL | quote }}
+  DATABASE_URL: {{ include "operation-find-cameron.databaseUrl" . | quote }}

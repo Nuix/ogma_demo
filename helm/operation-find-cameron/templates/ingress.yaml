@@ -1,0 +1,67 @@
+{{- if .Values.ingress.enabled -}}
+# Frontend ingress — no middleware, serves /demo as-is
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "operation-find-cameron.fullname" . }}-frontend
+  labels:
+    {{- include "operation-find-cameron.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /demo
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "operation-find-cameron.fullname" . }}-frontend
+                port:
+                  name: http
+---
+# Backend ingress — strips /demo prefix before forwarding to Express
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "operation-find-cameron.fullname" . }}-backend
+  labels:
+    {{- include "operation-find-cameron.labels" . | nindent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ include "operation-find-cameron.fullname" . }}-strip-demo@kubernetescrd
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /demo/api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "operation-find-cameron.fullname" . }}-backend
+                port:
+                  name: http
+          - path: /demo/socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "operation-find-cameron.fullname" . }}-backend
+                port:
+                  name: http
+{{- end }}

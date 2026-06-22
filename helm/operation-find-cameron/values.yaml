@@ -1,0 +1,151 @@
+# ============================================================
+# operation-find-cameron Helm values
+# Override sensitive values via --set or an external secret.
+# ============================================================
+
+# ------------------------------------
+# Global image settings
+# ------------------------------------
+global:
+  imageRegistry: ""
+  imagePullPolicy: IfNotPresent
+
+# ------------------------------------
+# Frontend
+# ------------------------------------
+frontend:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/camstillhere/operation-find-cameron/frontend
+    tag: latest
+    pullPolicy: Never
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  env:
+    # URL the browser uses to reach the backend (set to your ingress host + /api)
+    VITE_API_URL: ""
+    BASE_PATH: /demo
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  probes:
+    liveness:
+      path: /demo
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readiness:
+      path: /demo
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# ------------------------------------
+# Backend
+# ------------------------------------
+backend:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/camstillhere/operation-find-cameron/backend
+    tag: latest
+    pullPolicy: Never
+
+  service:
+    type: ClusterIP
+    port: 3001
+
+  env:
+    NODE_ENV: production
+    PORT: "3001"
+    TARGET_NAME: "Cameron Stiller"
+    LAST_SEEN_DATE: "2026-06-26"
+    CASE_START_NUMBER: "1000"
+    # CORS_ORIGIN should match your ingress host, e.g. https://demo.example.com
+    CORS_ORIGIN: ""
+    RATE_LIMIT_WINDOW_MS: "60000"
+    RATE_LIMIT_MAX_REQUESTS: "10"
+    # POLL_URL: leave empty to disable polling
+    POLL_URL: ""
+    POLL_INTERVAL_MS: "30000"
+    ANTHROPIC_MODEL: "claude-3-5-sonnet-20241022"
+
+  # Sensitive values — override via --set or mount an external Secret.
+  # Default values are empty; pods will start but AI features will be inactive
+  # until real credentials are supplied.
+  secrets:
+    # -- Anthropic API key. Override: --set backend.secrets.ANTHROPIC_API_KEY=sk-ant-...
+    ANTHROPIC_API_KEY: ""
+    # -- AWS credentials (if used for Bedrock or S3)
+    AWS_ACCESS_KEY_ID: ""
+    AWS_SECRET_ACCESS_KEY: ""
+    AWS_REGION: "us-east-1"
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+  probes:
+    liveness:
+      path: /health
+      initialDelaySeconds: 20
+      periodSeconds: 20
+    readiness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+
+# ------------------------------------
+# HorizontalPodAutoscaler (backend)
+# ------------------------------------
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+# ------------------------------------
+# Ingress
+# ------------------------------------
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  host: apac.ventures.nuix.com
+  tls: []
+
+# ------------------------------------
+# PostgreSQL subchart (bitnami/postgresql ~13.x)
+# ------------------------------------
+postgresql:
+  enabled: true
+  auth:
+    database: operation_find_cameron
+    username: appuser
+    # Override: --set postgresql.auth.password=supersecret
+    password: ""
+    # If postgresPassword is empty bitnami will auto-generate one.
+    postgresPassword: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
