@@ -37,7 +37,7 @@
 
 ```bash
 cp .env.example .env
-# Fill in: ANTHROPIC_API_KEY, TARGET_NAME, LAST_SEEN_DATE, POLL_URL
+# Fill in: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, TARGET_NAME, LAST_SEEN_DATE, POLL_URL
 # Optionally set: DB_USER, DB_PASSWORD, DB_NAME (defaults are fine for local dev)
 
 docker-compose up -d
@@ -99,7 +99,8 @@ The `helm/operation-find-cameron/` chart deploys frontend, backend, PostgreSQL (
 ```bash
 helm upgrade --install operation-find-cameron ./helm/operation-find-cameron \
   -n your-namespace \
-  --set backend.env.ANTHROPIC_API_KEY=sk-... \
+  --set backend.secrets.AWS_ACCESS_KEY_ID=... \
+  --set backend.secrets.AWS_SECRET_ACCESS_KEY=... \
   --set backend.env.TARGET_NAME="Your Name" \
   --set backend.env.POLL_URL="https://raw.githubusercontent.com/..." \
   --set postgresql.auth.password=changeme

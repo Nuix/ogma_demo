@@ -33,4 +33,7 @@ seed_statement.json
 populate_statements.json
 test_statement.json
 insert_person.sql
-C:WindowsTempgraph.json
+
+# Stray temp files
+*WindowsTemp*
+C:Windows*

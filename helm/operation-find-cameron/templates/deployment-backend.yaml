@@ -94,12 +94,7 @@ spec:
                 configMapKeyRef:
                   name: {{ include "operation-find-cameron.fullname" . }}-config
                   key: ANTHROPIC_MODEL
-            # ---- Sensitive secrets ----
-            - name: ANTHROPIC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "operation-find-cameron.fullname" . }}-secret
-                  key: ANTHROPIC_API_KEY
+            # ---- Sensitive secrets (AWS Bedrock) ----
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:

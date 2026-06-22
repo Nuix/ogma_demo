@@ -374,9 +374,11 @@ NODE_ENV=production
 DATABASE_URL=postgresql://user:password@db:5432/witness_board
 REDIS_URL=redis://redis:6379
 
-# Claude API
-ANTHROPIC_API_KEY=sk-ant-xxx
-ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+# Claude via AWS Bedrock
+AWS_ACCESS_KEY_ID=your-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+ANTHROPIC_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 
 # Application
 TARGET_NAME="[User Name]"
@@ -420,7 +422,8 @@ services:
       - "3001:3001"
     environment:
       - DATABASE_URL=postgresql://witness:password@db:5432/witness_board
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - TARGET_NAME=${TARGET_NAME}
     depends_on:
       - db

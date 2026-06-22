@@ -51,7 +51,7 @@ Three main tables:
 ### Environment Setup
 ```bash
 cp .env.example .env
-# Edit .env: Add ANTHROPIC_API_KEY, TARGET_NAME, LAST_SEEN_DATE
+# Edit .env: Add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, TARGET_NAME, LAST_SEEN_DATE, POLL_URL
 ```
 
 ### Docker (Recommended)

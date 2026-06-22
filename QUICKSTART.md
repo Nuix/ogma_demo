@@ -24,7 +24,8 @@ A fully functional witness board application with:
 cp .env.example .env
 
 # Edit .env and add:
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+AWS_ACCESS_KEY_ID=your-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-key
 TARGET_NAME=Your Name
 LAST_SEEN_DATE=2026-06-13
 ```
@@ -122,13 +123,9 @@ Check your API key in `.env`:
 Error analyzing witness statement: ...
 ```
 
-Test API key:
+Test AWS Bedrock access:
 ```bash
-curl https://api.anthropic.com/v1/messages \
-  -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "anthropic-version: 2023-06-01" \
-  -H "content-type: application/json" \
-  -d '{...}'
+aws bedrock list-foundation-models --region us-east-1
 ```
 
 ### Database connection fails
