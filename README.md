@@ -25,7 +25,7 @@
 | Graph viz | [Ogma (Linkurious)](https://doc.linkurious.com/ogma/latest/) — commercial licence required |
 | Map | Leaflet + OpenStreetMap |
 | Backend | Node.js + Express + Socket.io |
-| AI | Anthropic Claude API (entity extraction, moderation) |
+| AI | Claude via AWS Bedrock (entity extraction, moderation) |
 | Geocoding | Nominatim (OpenStreetMap) — rate-limited at 1 req/s |
 | Database | PostgreSQL |
 | Deployment | Docker Compose (local) · Helm + k3s (production) |
@@ -58,13 +58,14 @@ Copy `.env.example` and fill in:
 
 | Variable | Description |
 |---|---|
-| `ANTHROPIC_API_KEY` | Anthropic API key for Claude |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS credentials for Bedrock (Claude is invoked via AWS Bedrock, not the direct Anthropic API) |
+| `AWS_REGION` | Bedrock region (default `us-east-1`) |
+| `ANTHROPIC_MODEL` | Bedrock model ID (default `us.anthropic.claude-sonnet-4-5-20250929-v1:0`) |
 | `TARGET_NAME` | Name of the "missing" person (e.g. `Cameron Stiller`) |
 | `LAST_SEEN_DATE` | Display date in the header (e.g. `2026-06-26`) |
 | `POLL_URL` | URL to a JSON array of pre-planned sightings (see below) |
 | `POLL_INTERVAL_MS` | How often to check `POLL_URL` (default `300000` = 5 min) |
 | `DB_USER` / `DB_PASSWORD` / `DB_NAME` | PostgreSQL credentials (defaults fine for local) |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Only if using AWS Bedrock instead of direct Anthropic API |
 
 ---
 
