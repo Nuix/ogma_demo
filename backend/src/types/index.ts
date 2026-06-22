@@ -30,38 +30,15 @@ export interface WitnessSubmission {
   id: string;
   witness_name?: string;
   raw_statement: string;
-  processed_entities?: ClaudeEntityResponse | null;
+  processed_entities?: null;
   moderation_status: 'pending' | 'approved' | 'rejected';
   case_number: string;
   created_at?: Date;
 }
 
-export interface ClaudeEntity {
-  type: NodeType;
-  label: string;
-}
-
-export interface ClaudeRelationship {
-  from: string;
-  to: string;
-  type: RelationshipType;
-}
-
-export interface ClaudeEntityResponse {
-  approved: boolean;
-  reason?: string;
-  entities: ClaudeEntity[];
-  relationships: ClaudeRelationship[];
-  caseReport: string;
-}
-
 export interface WitnessStatementRequest {
-  witnessName?: string;
   location: string;
-  locationLat?: number;
-  locationLng?: number;
   activity?: string;
-  activityIcon?: string;
   associate?: string;
   time?: string;
 }
@@ -71,12 +48,6 @@ export interface WitnessStatementResponse {
   caseNumber?: string;
   status: 'approved' | 'rejected';
   message: string;
-  badge?: {
-    name: string;
-    caseNumber: string;
-    timestamp: string;
-  };
-  extractedEntities?: ClaudeEntity[];
   reason?: string;
 }
 

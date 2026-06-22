@@ -129,20 +129,6 @@ spec:
                 secretKeyRef:
                   name: witness-board-secrets
                   key: database-url
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: witness-board-secrets
-                  key: aws-access-key-id
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: witness-board-secrets
-                  key: aws-secret-access-key
-            - name: AWS_REGION
-              value: "us-east-1"
-            - name: ANTHROPIC_MODEL
-              value: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
             - name: TARGET_NAME
               value: "Cameron Stiller"
             - name: LAST_SEEN_DATE

@@ -30,12 +30,8 @@ export interface GraphData {
 }
 
 export interface WitnessStatementRequest {
-  witnessName?: string;
   location: string;
-  locationLat?: number;
-  locationLng?: number;
   activity?: string;
-  activityIcon?: string;
   associate?: string;
   time?: string;
 }
@@ -45,12 +41,6 @@ export interface WitnessStatementResponse {
   caseNumber?: string;
   status: 'approved' | 'rejected';
   message: string;
-  badge?: {
-    name: string;
-    caseNumber: string;
-    timestamp: string;
-  };
-  extractedEntities?: Array<{type: NodeType; label: string}>;
   reason?: string;
 }
 

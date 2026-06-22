@@ -20,5 +20,4 @@ data:
   RATE_LIMIT_MAX_REQUESTS: {{ .Values.backend.env.RATE_LIMIT_MAX_REQUESTS | quote }}
   POLL_URL: {{ .Values.backend.env.POLL_URL | quote }}
   POLL_INTERVAL_MS: {{ .Values.backend.env.POLL_INTERVAL_MS | quote }}
-  ANTHROPIC_MODEL: {{ .Values.backend.env.ANTHROPIC_MODEL | quote }}
   DATABASE_URL: {{ include "operation-find-cameron.databaseUrl" . | quote }}

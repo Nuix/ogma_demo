@@ -25,7 +25,7 @@
 | Graph viz | [Ogma (Linkurious)](https://doc.linkurious.com/ogma/latest/) — commercial licence required |
 | Map | Leaflet + OpenStreetMap |
 | Backend | Node.js + Express + Socket.io |
-| AI | Claude via AWS Bedrock (entity extraction, moderation) |
+| AI | None — staff form submits structured fields directly |
 | Geocoding | Nominatim (OpenStreetMap) — rate-limited at 1 req/s |
 | Database | PostgreSQL |
 | Deployment | Docker Compose (local) · Helm + k3s (production) |
@@ -37,7 +37,7 @@
 
 ```bash
 cp .env.example .env
-# Fill in: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, TARGET_NAME, LAST_SEEN_DATE, POLL_URL
+# Fill in: TARGET_NAME, LAST_SEEN_DATE, POLL_URL
 # Optionally set: DB_USER, DB_PASSWORD, DB_NAME (defaults are fine for local dev)
 
 docker-compose up -d
@@ -58,9 +58,6 @@ Copy `.env.example` and fill in:
 
 | Variable | Description |
 |---|---|
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS credentials for Bedrock (Claude is invoked via AWS Bedrock, not the direct Anthropic API) |
-| `AWS_REGION` | Bedrock region (default `us-east-1`) |
-| `ANTHROPIC_MODEL` | Bedrock model ID (default `us.anthropic.claude-sonnet-4-5-20250929-v1:0`) |
 | `TARGET_NAME` | Name of the "missing" person (e.g. `Cameron Stiller`) |
 | `LAST_SEEN_DATE` | Display date in the header (e.g. `2026-06-26`) |
 | `POLL_URL` | URL to a JSON array of pre-planned sightings (see below) |
@@ -99,8 +96,6 @@ The `helm/operation-find-cameron/` chart deploys frontend, backend, PostgreSQL (
 ```bash
 helm upgrade --install operation-find-cameron ./helm/operation-find-cameron \
   -n your-namespace \
-  --set backend.secrets.AWS_ACCESS_KEY_ID=... \
-  --set backend.secrets.AWS_SECRET_ACCESS_KEY=... \
   --set backend.env.TARGET_NAME="Your Name" \
   --set backend.env.POLL_URL="https://raw.githubusercontent.com/..." \
   --set postgresql.auth.password=changeme
@@ -118,7 +113,6 @@ Images are expected to be pre-built and imported on the node (`imagePullPolicy: 
 │   │   ├── index.ts              Express + Socket.io server
 │   │   ├── routes/witness.ts     API endpoints
 │   │   └── services/
-│   │       ├── claude.ts         Anthropic API — entity extraction & moderation
 │   │       ├── database.ts       PostgreSQL operations
 │   │       ├── geo.ts            Nominatim geocoding + reverse geocoding
 │   │       └── poller.ts         GitHub sightings feed poller

@@ -51,7 +51,7 @@ Three main tables:
 ### Environment Setup
 ```bash
 cp .env.example .env
-# Edit .env: Add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, TARGET_NAME, LAST_SEEN_DATE, POLL_URL
+# Edit .env: Add TARGET_NAME, LAST_SEEN_DATE, POLL_URL
 ```
 
 ### Docker (Recommended)
@@ -78,7 +78,6 @@ npm run dev                 # Runs on port 3000 (proxies API to 3001)
 
 ### Key Files
 - `backend/src/index.ts` - Express server with Socket.io
-- `backend/src/services/claude.ts` - Claude API integration
 - `backend/src/services/database.ts` - PostgreSQL operations
 - `backend/src/routes/witness.ts` - API endpoints
 - `frontend/src/App.tsx` - Main React app

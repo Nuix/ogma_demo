@@ -89,27 +89,6 @@ spec:
                 configMapKeyRef:
                   name: {{ include "operation-find-cameron.fullname" . }}-config
                   key: POLL_INTERVAL_MS
-            - name: ANTHROPIC_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "operation-find-cameron.fullname" . }}-config
-                  key: ANTHROPIC_MODEL
-            # ---- Sensitive secrets (AWS Bedrock) ----
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "operation-find-cameron.fullname" . }}-secret
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "operation-find-cameron.fullname" . }}-secret
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: AWS_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "operation-find-cameron.fullname" . }}-secret
-                  key: AWS_REGION
           livenessProbe:
             httpGet:
               path: {{ .Values.backend.probes.liveness.path }}

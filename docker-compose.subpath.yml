@@ -26,11 +26,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
-      - DATABASE_URL=postgresql://witness:witnesspass@db:5432/witness_board
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - ANTHROPIC_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+      - DATABASE_URL=postgresql://${DB_USER:-witness}:${DB_PASSWORD:-witnesspass}@db:5432/${DB_NAME:-witness_board}
       - TARGET_NAME=Cameron Stiller
       - LAST_SEEN_DATE=2026-06-26
       - CASE_START_NUMBER=1000
@@ -49,15 +45,15 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=witness
-      - POSTGRES_PASSWORD=witnesspass
-      - POSTGRES_DB=witness_board
+      - POSTGRES_USER=${DB_USER:-witness}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-witnesspass}
+      - POSTGRES_DB=${DB_NAME:-witness_board}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U witness"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-witness}"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -7,8 +7,6 @@ interface WitnessFormProps {
   onSubmitSuccess: () => void;
 }
 
-const ACTIVITY_ICONS = ['☕', '🍕', '🏃', '📚', '💻', '🛍️', '🎮', '🍺', '🎭', '🚶', '🏊', '🎯', '🍔', '🧘', '🎸'];
-
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '8px 10px',
@@ -31,11 +29,9 @@ const labelStyle: React.CSSProperties = {
 };
 
 export function WitnessForm({ onSubmitSuccess }: WitnessFormProps) {
-  const [witnessName, setWitnessName] = useState('');
   const [location, setLocation] = useState('');
   const [locationCoords, setLocationCoords] = useState<SelectedLocation | null>(null);
   const [activity, setActivity] = useState('');
-  const [activityIcon, setActivityIcon] = useState(ACTIVITY_ICONS[0]);
   const [associate, setAssociate] = useState('');
   const [time, setTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,22 +44,18 @@ export function WitnessForm({ onSubmitSuccess }: WitnessFormProps) {
     setResponse(null);
     try {
       const result = await submitWitnessStatement({
-        witnessName: witnessName.trim() || undefined,
         location: locationCoords?.label ?? location.trim(),
-        locationLat: locationCoords?.lat,
-        locationLng: locationCoords?.lng,
         activity: activity.trim() || undefined,
-        activityIcon: activity.trim() ? activityIcon : undefined,
         associate: associate.trim() || undefined,
         time: time || undefined,
       });
       setResponse(result);
       if (result.success) {
         setLocation(''); setLocationCoords(null); setActivity(''); setAssociate(''); setTime('');
-        setTimeout(() => { setResponse(null); onSubmitSuccess(); }, 3500);
+        setTimeout(() => { setResponse(null); onSubmitSuccess(); }, 3000);
       }
     } catch {
-      setResponse({ success: false, status: 'rejected', message: 'Failed to submit. Please try again.', reason: 'Network error' });
+      setResponse({ success: false, status: 'rejected', message: 'Failed to submit. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -72,19 +64,13 @@ export function WitnessForm({ onSubmitSuccess }: WitnessFormProps) {
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Submit Witness Statement</div>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Report a sighting of Cameron Stiller</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Submit Sighting</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Add a confirmed sighting to the investigation board</div>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label style={labelStyle}>Your Name (Optional)</label>
-          <input type="text" value={witnessName} onChange={e => setWitnessName(e.target.value)}
-            placeholder="Anonymous" disabled={isSubmitting} style={inputStyle} />
-        </div>
-
-        <div>
-          <label style={labelStyle}>📍 Where was Cameron seen? <span style={{ color: '#e74c3c' }}>*</span></label>
+          <label style={labelStyle}>📍 Location <span style={{ color: '#e74c3c' }}>*</span></label>
           <LocationAutocomplete
             value={location}
             onChange={(loc, raw) => { setLocationCoords(loc); setLocation(raw); }}
@@ -92,44 +78,26 @@ export function WitnessForm({ onSubmitSuccess }: WitnessFormProps) {
             required
           />
           {locationCoords && (
-            <div style={{ marginTop: 4, fontSize: 11, color: '#06b6d4' }}>
-              ✓ Location pinned to map
-            </div>
+            <div style={{ marginTop: 4, fontSize: 11, color: '#06b6d4' }}>✓ Location found</div>
           )}
         </div>
 
         <div>
-          <label style={labelStyle}>🎯 What were they doing?</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
-            {ACTIVITY_ICONS.map(icon => (
-              <button key={icon} type="button" onClick={() => setActivityIcon(icon)} style={{
-                width: 34, height: 34, fontSize: 18,
-                border: `2px solid ${icon === activityIcon ? '#e74c3c' : '#e2e8f0'}`,
-                borderRadius: 6,
-                backgroundColor: icon === activityIcon ? '#fef2f2' : '#f8fafc',
-                cursor: 'pointer', padding: 0, lineHeight: 1,
-              }}>{icon}</button>
-            ))}
-          </div>
+          <label style={labelStyle}>🎯 Activity</label>
           <input type="text" value={activity} onChange={e => setActivity(e.target.value)}
             placeholder="e.g. drinking coffee, reading a book…"
             disabled={isSubmitting} style={inputStyle} />
         </div>
 
         <div>
-          <label style={labelStyle}>
-            🤝 Who / what were they with?
-            <span style={{ fontWeight: 400, color: '#94a3b8', marginLeft: 6, textTransform: 'none', letterSpacing: 0 }}>
-              (optional — leave blank if alone)
-            </span>
-          </label>
+          <label style={labelStyle}>🤝 Associate</label>
           <input type="text" value={associate} onChange={e => setAssociate(e.target.value)}
-            placeholder="e.g. their colleague, a dog…"
+            placeholder="e.g. a colleague, a suspicious dog…"
             disabled={isSubmitting} style={inputStyle} />
         </div>
 
         <div>
-          <label style={labelStyle}>🕐 When was this?</label>
+          <label style={labelStyle}>🕐 When</label>
           <input type="datetime-local" value={time} onChange={e => setTime(e.target.value)}
             disabled={isSubmitting} style={{ ...inputStyle, colorScheme: 'light' }} />
         </div>
@@ -142,7 +110,7 @@ export function WitnessForm({ onSubmitSuccess }: WitnessFormProps) {
           cursor: isSubmitting || !location.trim() ? 'not-allowed' : 'pointer',
           letterSpacing: '0.05em',
         }}>
-          {isSubmitting ? 'Filing report…' : 'Submit Sighting'}
+          {isSubmitting ? 'Filing…' : 'Submit Sighting'}
         </button>
       </form>
 
@@ -156,12 +124,6 @@ export function WitnessForm({ onSubmitSuccess }: WitnessFormProps) {
           <p style={{ margin: 0, color: response.success ? '#15803d' : '#dc2626', fontWeight: 600, fontSize: 13 }}>
             {response.message}
           </p>
-          {response.badge && (
-            <div style={{ marginTop: 8, color: '#64748b', fontSize: 12 }}>
-              <div>Investigator: {response.badge.name}</div>
-              <div>Case #: {response.badge.caseNumber}</div>
-            </div>
-          )}
         </div>
       )}
     </div>

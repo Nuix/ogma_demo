@@ -76,16 +76,6 @@ backend:
     # POLL_URL: leave empty to disable polling
     POLL_URL: ""
     POLL_INTERVAL_MS: "30000"
-    ANTHROPIC_MODEL: "claude-3-5-sonnet-20241022"
-
-  # Sensitive values — override via --set or mount an external Secret.
-  # Default values are empty; pods will start but AI features will be inactive
-  # until real credentials are supplied.
-  secrets:
-    # -- AWS credentials for Bedrock (Claude is invoked via Bedrock, not the direct Anthropic API)
-    AWS_ACCESS_KEY_ID: ""
-    AWS_SECRET_ACCESS_KEY: ""
-    AWS_REGION: "us-east-1"
 
   resources:
     requests:
