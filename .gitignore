@@ -17,8 +17,9 @@ frontend/dist/
 ogma/
 frontend/public/ogma/
 
-# Claude Code local settings (contains server IPs, key paths, etc.)
-.claude/settings.local.json
+# Claude Code files — internal dev tooling, not for the repo
+.claude/
+CLAUDE.md
 
 # Nuix brand assets — not for public distribution
 brand_center/

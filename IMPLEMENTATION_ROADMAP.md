@@ -176,7 +176,7 @@ CREATE INDEX idx_edges_target ON edges(target_id);
 - [ ] Set up monitoring/logging (optional)
 
 ### Documentation
-- [ ] Update CLAUDE.md with development commands
+- [ ] Update README with development commands
 - [ ] Document API endpoints
 - [ ] Document Claude API prompts and responses
 - [ ] Create troubleshooting guide
