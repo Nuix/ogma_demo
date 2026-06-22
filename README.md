@@ -137,6 +137,20 @@ Images are expected to be pre-built and imported on the node (`imagePullPolicy: 
 
 ---
 
+## Easter egg — submitting sightings
+
+The main site is read-only for most visitors. But if you know the URL, you can submit sightings yourself:
+
+```
+https://your-domain/demo/staff
+```
+
+The `/staff` route unlocks a witness statement form. Type what you saw and Claude will extract the entities and add them to the graph in real time. Keep it work-appropriate — the API moderates submissions.
+
+This path is intentionally undocumented in the UI. Share it only with people you want contributing to the investigation.
+
+---
+
 ## Adapting for your own OOO
 
 1. Fork this repo
