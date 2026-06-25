@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { formatTimeLabel, reverseGeocode, geocodeAddress, inferIcon } from '../services/geo';
+import { formatTimeLabel, reverseGeocode, geocodeAddress, inferIcon, normalizeAddress } from '../services/geo';
 import { pollOnce } from '../services/poller';
 import {
   createNode,
@@ -37,21 +37,34 @@ router.post('/witness-statement', async (req, res) => {
     const targetName = process.env.TARGET_NAME || 'Unknown Person';
     const targetNode = await findNodeByLabel(targetName, 'PERSON');
 
-    // Location node — geocode via Nominatim (same as poller)
-    const locationLabel = location.trim();
+    // Location node — normalise then find/create with coord-proximity dedup
+    const locationLabel = normalizeAddress(location);
     let locationNode = await findNodeByLabel(locationLabel, 'LOCATION');
     if (!locationNode) {
       const coords = await geocodeAddress(locationLabel);
-      locationNode = await createNode({
-        type: 'LOCATION',
-        label: locationLabel,
-        properties: { mentions: 1, icon: '📍', lat: coords?.lat, lng: coords?.lng },
-      });
+      // Reuse any existing node within ~50 m (±0.0005°) rather than creating a duplicate
       if (coords) {
-        const nodeId = locationNode.id;
-        reverseGeocode(coords.lat, coords.lng).then(geo => {
-          if (geo) updateNodeProperties(nodeId, { suburb: geo.suburb, suburbLat: geo.suburbLat, suburbLng: geo.suburbLng });
-        }).catch(() => {});
+        const { rows: nearby } = await pool.query(
+          `SELECT * FROM nodes WHERE type = 'LOCATION'
+             AND ABS((properties->>'lat')::float - $1) < 0.0005
+             AND ABS((properties->>'lng')::float - $2) < 0.0005
+           LIMIT 1`,
+          [coords.lat, coords.lng],
+        );
+        if (nearby.length > 0) locationNode = nearby[0];
+      }
+      if (!locationNode) {
+        locationNode = await createNode({
+          type: 'LOCATION',
+          label: locationLabel,
+          properties: { mentions: 1, icon: '📍', lat: coords?.lat, lng: coords?.lng },
+        });
+        if (coords) {
+          const nodeId = locationNode.id;
+          reverseGeocode(coords.lat, coords.lng).then(geo => {
+            if (geo) updateNodeProperties(nodeId, { suburb: geo.suburb, suburbLat: geo.suburbLat, suburbLng: geo.suburbLng });
+          }).catch(() => {});
+        }
       }
     }
 
@@ -103,10 +116,11 @@ router.post('/witness-statement', async (req, res) => {
 
     if (targetNode) {
       await createEdge({ source_id: targetNode.id, target_id: locationNode.id, relationship_type: 'SEEN_AT', properties: edgeProps });
-      if (activityNode)  await createEdge({ source_id: targetNode.id, target_id: activityNode.id,  relationship_type: 'DOING',      properties: edgeProps });
-      if (associateNode) {
-        await createEdge({ source_id: targetNode.id,    target_id: associateNode.id, relationship_type: 'WITH',       properties: edgeProps });
-        await createEdge({ source_id: associateNode.id, target_id: locationNode.id,  relationship_type: 'SPOTTED_AT', properties: edgeProps });
+      if (activityNode) {
+        await createEdge({ source_id: locationNode.id, target_id: activityNode.id, relationship_type: 'HAS_ACTIVITY', properties: edgeProps });
+        if (associateNode) await createEdge({ source_id: activityNode.id, target_id: associateNode.id, relationship_type: 'WITH', properties: edgeProps });
+      } else if (associateNode) {
+        await createEdge({ source_id: locationNode.id, target_id: associateNode.id, relationship_type: 'WITH', properties: edgeProps });
       }
     }
     if (timeNode) await createEdge({ source_id: locationNode.id, target_id: timeNode.id, relationship_type: 'DURING', properties: edgeProps });

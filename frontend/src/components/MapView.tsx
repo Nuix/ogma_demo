@@ -17,71 +17,102 @@ const NODE_EMOJIS: Record<string, string> = {
   ASSOCIATE: '👤',
 };
 
+interface ActivitySat { node: GraphNode; associates: GraphNode[]; }
+
+function wrapLabel(label: string, maxLen = 13): string[] {
+  const words = label.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  words.forEach(w => {
+    if ((cur + ' ' + w).trim().length > maxLen && cur) { lines.push(cur); cur = w; }
+    else cur = (cur + ' ' + w).trim();
+  });
+  if (cur) lines.push(cur);
+  return lines.slice(0, 2);
+}
+
 function buildClusterIcon(
   locationNode: GraphNode,
-  satellites: GraphNode[],
+  activities: ActivitySat[],
   isCurrent: boolean,
   opacity: number,
 ): L.DivIcon {
   const centerR = 36;
-  const satR    = 28;
-  const orbitR  = satellites.length > 0 ? 110 : 0;
-  const pad     = centerR + orbitR + satR + 40; // extra room for labels
+  const actR    = 24;
+  const assocR  = 18;
+  const orbit1  = activities.length > 0 ? 110 : 0;
+  const orbit2  = 72;
+  const pad     = centerR + orbit1 + actR + orbit2 + assocR + 44;
   const size    = pad * 2;
-  const cx      = size / 2;
-  const cy      = size / 2;
-  const angleStep = satellites.length > 0 ? (2 * Math.PI) / satellites.length : 0;
+  const cx = size / 2;
+  const cy = size / 2;
+  const aStep = activities.length > 0 ? (2 * Math.PI) / activities.length : 0;
 
-  const lines = satellites.map((_, i) => {
-    const a  = i * angleStep - Math.PI / 2;
-    const nx = cx + orbitR * Math.cos(a);
-    const ny = cy + orbitR * Math.sin(a);
-    return `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#475569" stroke-width="2" opacity="0.5"/>`;
-  }).join('');
+  let linesSvg = '';
+  let nodesSvg = '';
 
-  const satNodes = satellites.map((node, i) => {
-    const a     = i * angleStep - Math.PI / 2;
-    const nx    = cx + orbitR * Math.cos(a);
-    const ny    = cy + orbitR * Math.sin(a);
-    const color = NODE_COLORS.ACTIVITY;
-    const emoji = node.properties?.icon || '⚡';
-    const words = node.label.split(' ');
-    // Wrap label into max 2 lines of ~12 chars
-    const lines2: string[] = [];
-    let cur = '';
-    words.forEach(w => {
-      if ((cur + ' ' + w).trim().length > 13 && cur) { lines2.push(cur); cur = w; }
-      else cur = (cur + ' ' + w).trim();
-    });
-    if (cur) lines2.push(cur);
-    const labelLines = lines2.slice(0, 2);
-    const labelY = ny + satR + 16;
-    const labelSvg = labelLines.map((l, li) =>
-      `<text x="${nx}" y="${labelY + li * 14}" text-anchor="middle" font-size="11"
+  activities.forEach((act, i) => {
+    const actAngle = i * aStep - Math.PI / 2;
+    const ax = cx + orbit1 * Math.cos(actAngle);
+    const ay = cy + orbit1 * Math.sin(actAngle);
+
+    linesSvg += `<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="#475569" stroke-width="2" opacity="0.5"/>`;
+
+    const actEmoji = act.node.properties?.icon || '⚡';
+    const actLabelLines = wrapLabel(act.node.label);
+    const actLabelY = ay + actR + 14;
+    const actLabelSvg = actLabelLines.map((l, li) =>
+      `<text x="${ax}" y="${actLabelY + li * 13}" text-anchor="middle" font-size="10"
         fill="#1e293b" font-weight="700" font-family="-apple-system,BlinkMacSystemFont,sans-serif"
         stroke="white" stroke-width="3" paint-order="stroke fill">${l}</text>`
     ).join('');
-    return `
-      <circle cx="${nx}" cy="${ny}" r="${satR}" fill="${color}" stroke="white" stroke-width="2.5"/>
-      <text x="${nx}" y="${ny + 9}" text-anchor="middle" font-size="20"
-        font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emoji}</text>
-      ${labelSvg}
-    `;
-  }).join('');
 
-  const locShort  = locationNode.label.split(',')[0].trim();
+    nodesSvg += `
+      <circle cx="${ax}" cy="${ay}" r="${actR}" fill="${NODE_COLORS.ACTIVITY}" stroke="white" stroke-width="2.5"/>
+      <text x="${ax}" y="${ay + 8}" text-anchor="middle" font-size="16"
+        font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${actEmoji}</text>
+      ${actLabelSvg}
+    `;
+
+    const n = act.associates.length;
+    if (n > 0) {
+      const spreadStep = n > 1 ? (Math.PI * 0.7) / (n - 1) : 0;
+      const baseAngle  = actAngle; // fan outward from activity (away from center)
+      act.associates.forEach((assoc, j) => {
+        const offset = n > 1 ? (j - (n - 1) / 2) * spreadStep : 0;
+        const bAngle = baseAngle + offset;
+        const bx = ax + orbit2 * Math.cos(bAngle);
+        const by = ay + orbit2 * Math.sin(bAngle);
+        const assocLabelLines = wrapLabel(assoc.label);
+        const assocLabelY = by + assocR + 13;
+        const assocLabelSvg = assocLabelLines.map((l, li) =>
+          `<text x="${bx}" y="${assocLabelY + li * 12}" text-anchor="middle" font-size="10"
+            fill="#1e293b" font-weight="700" font-family="-apple-system,BlinkMacSystemFont,sans-serif"
+            stroke="white" stroke-width="3" paint-order="stroke fill">${l}</text>`
+        ).join('');
+        linesSvg += `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#f59e0b" stroke-width="1.5" opacity="0.6"/>`;
+        nodesSvg += `
+          <circle cx="${bx}" cy="${by}" r="${assocR}" fill="${NODE_COLORS.ASSOCIATE}" stroke="white" stroke-width="2"/>
+          <text x="${bx}" y="${by + 6}" text-anchor="middle" font-size="13"
+            font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">👤</text>
+          ${assocLabelSvg}
+        `;
+      });
+    }
+  });
+
+  const locShort    = locationNode.label.split(',')[0].trim();
   const centerEmoji = isCurrent ? '🎯' : '📍';
   const centerFill  = isCurrent ? '#e74c3c' : '#06b6d4';
   const locColor    = isCurrent ? '#e74c3c' : '#475569';
-  const locWeight   = isCurrent ? '700' : '500';
 
   const svg = `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"
       style="overflow:visible;opacity:${opacity};transition:opacity 1s ease">
-    ${lines}
+    ${linesSvg}
     <circle cx="${cx}" cy="${cy}" r="${centerR}" fill="${centerFill}" stroke="white" stroke-width="3"/>
     <text x="${cx}" y="${cy + 11}" text-anchor="middle" font-size="26"
       font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${centerEmoji}</text>
-    ${satNodes}
+    ${nodesSvg}
     <text x="${cx}" y="${cy + centerR + 18}" text-anchor="middle" font-size="13"
       fill="${locColor}" font-weight="700"
       stroke="white" stroke-width="4" paint-order="stroke fill"
@@ -113,6 +144,8 @@ export function MapView({ data, visibleNodeIds, visibleEdgeIds }: MapViewProps) 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     mapRef.current = L.map(containerRef.current, { center: [-27, 134], zoom: 5, zoomControl: true });
+    // Let Leaflet measure the container after it's painted
+    setTimeout(() => mapRef.current?.invalidateSize(), 0);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
@@ -160,11 +193,6 @@ export function MapView({ data, visibleNodeIds, visibleEdgeIds }: MapViewProps) 
     });
 
     // ── Earliest SEEN_AT timestamp per suburb (for sort + trail) ─────────────
-    const caseToLocation = new Map<string, string>();
-    data.edges.forEach(e => {
-      if (e.type === 'SEEN_AT' && e.properties?.caseNumber) caseToLocation.set(e.properties.caseNumber, e.target);
-    });
-
     data.edges.forEach(e => {
       if (e.type !== 'SEEN_AT') return;
       const loc = nodeById.get(e.target);
@@ -193,25 +221,31 @@ export function MapView({ data, visibleNodeIds, visibleEdgeIds }: MapViewProps) 
     });
     if (!currentSuburbKey && sortedGroups.length > 0) currentSuburbKey = sortedGroups[sortedGroups.length - 1].key;
 
-    // ── Satellites per suburb (visible activities only) ───────────────────────
+    // ── Satellites: Location → Activity → Associate ──────────────────────────
+    // _acts: Map<actNodeId, ActivitySat> per group
+    const activityToGroup = new Map<string, any>(); // actNodeId → group
+
     data.edges.forEach(e => {
-      if (!isEdgeVisible(e.id)) return;
-      const caseNum = e.properties?.caseNumber;
-      if (!caseNum) return;
-      const locId = caseToLocation.get(caseNum);
-      if (!locId) return;
-      const loc = nodeById.get(locId);
+      if (!isEdgeVisible(e.id) || e.type !== 'HAS_ACTIVITY') return;
+      const loc = nodeById.get(e.source);
       if (!loc) return;
       const key = loc.properties?.suburb || loc.label;
       const grp = suburbMap.get(key);
       if (!grp) return;
-      [e.source, e.target].forEach(nodeId => {
-        const node = nodeById.get(nodeId);
-        if (node && node.type === 'ACTIVITY' && isNodeVisible(node.id)) {
-          if (!(grp as any)._sats) (grp as any)._sats = new Map<string, GraphNode>();
-          (grp as any)._sats.set(node.id, node);
-        }
-      });
+      const actNode = nodeById.get(e.target);
+      if (!actNode || actNode.type !== 'ACTIVITY' || !isNodeVisible(actNode.id)) return;
+      if (!(grp as any)._acts) (grp as any)._acts = new Map<string, ActivitySat>();
+      (grp as any)._acts.set(actNode.id, { node: actNode, associates: [] });
+      activityToGroup.set(actNode.id, grp);
+    });
+
+    data.edges.forEach(e => {
+      if (!isEdgeVisible(e.id) || e.type !== 'WITH') return;
+      const grp = activityToGroup.get(e.source);
+      if (!grp || !(grp as any)._acts) return;
+      const assocNode = nodeById.get(e.target);
+      if (!assocNode || assocNode.type !== 'ASSOCIATE' || !isNodeVisible(assocNode.id)) return;
+      (grp as any)._acts.get(e.source)?.associates.push(assocNode);
     });
 
     // ── Trail ─────────────────────────────────────────────────────────────────
@@ -234,13 +268,16 @@ export function MapView({ data, visibleNodeIds, visibleEdgeIds }: MapViewProps) 
       const lng        = grp.lng;
       if (isCurrent) currentLatLng = [lat, lng];
 
-      const satellites: GraphNode[] = (grp as any)._sats ? Array.from((grp as any)._sats.values()) : [];
+      const activities: ActivitySat[] = (grp as any)._acts ? Array.from((grp as any)._acts.values()) : [];
 
       if (isCurrent) {
-        // Build a fake location node for the cluster label
         const labelNode = { id: '', type: 'LOCATION' as const, label: grp.label, properties: grp };
-        const icon = buildClusterIcon(labelNode, satellites, true, 1);
-        const tooltipHtml = `<strong>${grp.label}</strong>${satellites.length ? '<br>' + satellites.map(s => (s.properties?.icon || '⚡') + ' ' + s.label).join('<br>') : ''}`;
+        const icon = buildClusterIcon(labelNode, activities, true, 1);
+        const tooltipLines = activities.flatMap(a => [
+          (a.node.properties?.icon || '⚡') + ' ' + a.node.label,
+          ...a.associates.map(assoc => '&nbsp;&nbsp;👤 ' + assoc.label),
+        ]);
+        const tooltipHtml = `<strong>${grp.label}</strong>${tooltipLines.length ? '<br>' + tooltipLines.join('<br>') : ''}`;
         L.marker([lat, lng], { icon, interactive: true })
           .bindTooltip(tooltipHtml, { direction: 'top', className: 'map-tooltip', offset: [0, -10] })
           .addTo(markerLayer.current!);
@@ -258,8 +295,12 @@ export function MapView({ data, visibleNodeIds, visibleEdgeIds }: MapViewProps) 
     });
 
     // ── Pan to current suburb ─────────────────────────────────────────────────
-    if (currentLatLng) {
-      mapRef.current!.setView(currentLatLng, 12, { animate: true, duration: 1.2 });
+    if (currentLatLng && containerRef.current?.offsetParent !== null) {
+      try {
+        mapRef.current!.setView(currentLatLng, 12, { animate: true, duration: 1.2 });
+      } catch {
+        mapRef.current!.setView(currentLatLng, 12, { animate: false });
+      }
     }
   }, [data, visibleNodeIds, visibleEdgeIds]);
 

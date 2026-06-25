@@ -115,7 +115,7 @@ function App() {
     return () => { s.disconnect(); };
   }, []);
 
-  const witnesses = graphData.nodes.filter(n => n.type === 'WITNESS').length;
+  const witnesses = graphData.nodes.filter(n => n.type === 'ASSOCIATE').length;
   const locations = graphData.nodes.filter(n => n.type === 'LOCATION').length;
   const activities = graphData.nodes.filter(n => n.type === 'ACTIVITY').length;
 
@@ -174,7 +174,7 @@ function App() {
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
           {[
-            { label: 'Witnesses', value: witnesses, color: '#3b82f6' },
+            { label: 'Associates', value: witnesses, color: '#3b82f6' },
             { label: 'Locations', value: locations, color: '#06b6d4' },
             { label: 'Activities', value: activities, color: '#8b5cf6' },
           ].map(s => (

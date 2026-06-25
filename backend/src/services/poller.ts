@@ -2,7 +2,7 @@ import {
   createNode, createEdge, createSubmission,
   getGraph, findNodeByLabel, updateNodeProperties, pool,
 } from './database';
-import { formatTimeLabel, reverseGeocode, geocodeAddress, inferIcon, delay } from './geo';
+import { formatTimeLabel, reverseGeocode, geocodeAddress, inferIcon, delay, normalizeAddress } from './geo';
 
 export interface PollEntry {
   time: string;         // ISO 8601 datetime — used as dedup key, required
@@ -30,21 +30,34 @@ export async function importEntry(entry: PollEntry, io?: any): Promise<boolean> 
   const targetNode = await findNodeByLabel(targetName, 'PERSON');
   if (!targetNode) return false;
 
-  // Location
-  const locationLabel = entry.location.trim();
+  // Location — normalise punctuation then find/create node
+  const locationLabel = normalizeAddress(entry.location);
   let locationNode = await findNodeByLabel(locationLabel, 'LOCATION');
   if (!locationNode) {
     const coords = await geocodeAddress(locationLabel);
-    locationNode = await createNode({
-      type: 'LOCATION',
-      label: locationLabel,
-      properties: { mentions: 1, icon: '📍', lat: coords?.lat, lng: coords?.lng },
-    });
+    // Coord-proximity dedup: reuse any existing node within ~50 m (±0.0005°)
     if (coords) {
-      await delay(1500);
-      const geo = await reverseGeocode(coords.lat, coords.lng);
-      if (geo) await updateNodeProperties(locationNode.id, { suburb: geo.suburb, suburbLat: geo.suburbLat, suburbLng: geo.suburbLng });
-      await delay(1500);
+      const { rows: nearby } = await pool.query(
+        `SELECT * FROM nodes WHERE type = 'LOCATION'
+           AND ABS((properties->>'lat')::float - $1) < 0.0005
+           AND ABS((properties->>'lng')::float - $2) < 0.0005
+         LIMIT 1`,
+        [coords.lat, coords.lng],
+      );
+      if (nearby.length > 0) locationNode = nearby[0];
+    }
+    if (!locationNode) {
+      locationNode = await createNode({
+        type: 'LOCATION',
+        label: locationLabel,
+        properties: { mentions: 1, icon: '📍', lat: coords?.lat, lng: coords?.lng },
+      });
+      if (coords) {
+        await delay(1500);
+        const geo = await reverseGeocode(coords.lat, coords.lng);
+        if (geo) await updateNodeProperties(locationNode.id, { suburb: geo.suburb, suburbLat: geo.suburbLat, suburbLng: geo.suburbLng });
+        await delay(1500);
+      }
     }
   } else if (!locationNode.properties?.suburb && locationNode.properties?.lat) {
     // Node exists but suburb missing from a previous partial import — retry reverse geocode
@@ -103,10 +116,11 @@ export async function importEntry(entry: PollEntry, io?: any): Promise<boolean> 
   const edgeProps = { caseNumber, timestamp: ts };
 
   await createEdge({ source_id: targetNode.id, target_id: locationNode.id, relationship_type: 'SEEN_AT', properties: edgeProps });
-  if (activityNode)  await createEdge({ source_id: targetNode.id,   target_id: activityNode.id,  relationship_type: 'DOING',       properties: edgeProps });
-  if (associateNode) {
-    await createEdge({ source_id: targetNode.id,   target_id: associateNode.id, relationship_type: 'WITH',       properties: edgeProps });
-    await createEdge({ source_id: associateNode.id, target_id: locationNode.id, relationship_type: 'SPOTTED_AT', properties: edgeProps });
+  if (activityNode) {
+    await createEdge({ source_id: locationNode.id, target_id: activityNode.id, relationship_type: 'HAS_ACTIVITY', properties: edgeProps });
+    if (associateNode) await createEdge({ source_id: activityNode.id, target_id: associateNode.id, relationship_type: 'WITH', properties: edgeProps });
+  } else if (associateNode) {
+    await createEdge({ source_id: locationNode.id, target_id: associateNode.id, relationship_type: 'WITH', properties: edgeProps });
   }
   if (timeNode) await createEdge({ source_id: locationNode.id, target_id: timeNode.id, relationship_type: 'DURING', properties: edgeProps });
 

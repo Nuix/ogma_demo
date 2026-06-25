@@ -1,3 +1,12 @@
+// Normalise Australian address punctuation: "City, NSW, 2000" → "City NSW 2000"
+export function normalizeAddress(address: string): string {
+  return address
+    .trim()
+    .replace(/,\s*(NSW|VIC|QLD|WA|SA|TAS|ACT|NT),?\s*(\d{4})\b/g, ' $1 $2')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export function formatTimeLabel(raw: string): string {
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;

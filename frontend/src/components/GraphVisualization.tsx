@@ -40,7 +40,7 @@ function emojiDataUrl(emoji: string): string {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-const TEXT_BASE = { position: 'bottom' as const, color: '#1e293b', size: 11, padding: 3 };
+const TEXT_BASE = { position: 'bottom' as const, color: '#1e293b', size: 11, padding: 3, backgroundColor: 'rgba(255,255,255,0.82)' };
 
 function applyStyles(ogma: any) {
   // All nodes: circle by default
@@ -54,6 +54,7 @@ function applyStyles(ogma: any) {
     {
       radius: 34,
       color: NODE_COLORS.PERSON,
+      scalingMethod: 'fixed',
       text: { content: (n: any) => n.getData('label') || '', ...TEXT_BASE, color: '#e74c3c', size: 14 },
     }
   );
@@ -64,6 +65,7 @@ function applyStyles(ogma: any) {
     {
       radius: 22,
       color: NODE_COLORS.WITNESS,
+      scalingMethod: 'fixed',
       text: { content: (n: any) => n.getData('label') || '', ...TEXT_BASE },
     }
   );
@@ -74,6 +76,7 @@ function applyStyles(ogma: any) {
     {
       radius: 22,
       color: NODE_COLORS.LOCATION,
+      scalingMethod: 'fixed',
       text: { content: (n: any) => n.getData('label') || '', ...TEXT_BASE },
     }
   );
@@ -84,6 +87,7 @@ function applyStyles(ogma: any) {
     {
       radius: 22,
       color: NODE_COLORS.ACTIVITY,
+      scalingMethod: 'fixed',
       text: { content: (n: any) => n.getData('label') || '', ...TEXT_BASE },
     }
   );
@@ -94,6 +98,7 @@ function applyStyles(ogma: any) {
     {
       radius: 22,
       color: NODE_COLORS.ASSOCIATE,
+      scalingMethod: 'fixed',
       text: { content: (n: any) => n.getData('label') || '', ...TEXT_BASE },
     }
   );
@@ -114,7 +119,7 @@ function applyNodeImages(ogma: any) {
     if (type === 'PERSON') {
       emoji = '🎯';
       n.setAttributes({
-        image: { url: emojiDataUrl(emoji), scale: 0.65, fit: false },
+        image: { url: emojiDataUrl(emoji), scale: 0.75, fit: true },
       });
       return;
     } else if (NODE_ICONS[type]) {
@@ -125,7 +130,7 @@ function applyNodeImages(ogma: any) {
 
     if (emoji) {
       n.setAttributes({
-        image: { url: emojiDataUrl(emoji), scale: 0.65, fit: false },
+        image: { url: emojiDataUrl(emoji), scale: 0.75, fit: true },
       });
     }
   });
@@ -141,7 +146,7 @@ export function GraphVisualization({ data, visibleNodeIds = null, visibleEdgeIds
     if (!containerRef.current) return;
     const ogma = new Ogma({
       container: containerRef.current,
-      options: { backgroundColor: '#f0f2f5', interactions: { zoom: { modifier: null } } },
+      options: { backgroundColor: '#f0f2f5', interactions: { zoom: { modifier: null, maxValue: () => 2.5 } } },
     });
     applyStyles(ogma);
 
@@ -181,8 +186,16 @@ export function GraphVisualization({ data, visibleNodeIds = null, visibleEdgeIds
         data: { type: node.type, label: node.label, ...node.properties },
       }));
 
+    // Deduplicate: one edge per (source, target, type) — multiple sightings at the same location create parallel SEEN_AT edges
+    const seenEdgeKeys = new Set<string>();
     const edges = data.edges
       .filter(e => !timeNodeIds.has(e.source) && !timeNodeIds.has(e.target))
+      .filter(e => {
+        const key = `${e.source}|${e.target}|${e.type}`;
+        if (seenEdgeKeys.has(key)) return false;
+        seenEdgeKeys.add(key);
+        return true;
+      })
       .map((edge: GraphEdge) => ({
         id: edge.id,
         source: edge.source,
@@ -195,29 +208,13 @@ export function GraphVisualization({ data, visibleNodeIds = null, visibleEdgeIds
       applyNodeImages(ogma);
       applyVisibility(ogma, visibleNodeIds, visibleEdgeIds);
 
-      // Seed positions in concentric rings by node type so force has a head start
-      const RING: Record<string, number> = { PERSON: 0, WITNESS: 350, LOCATION: 700, ACTIVITY: 1050, ASSOCIATE: 1050 };
-      const counts: Record<string, number> = {};
-      ogma.getNodes().forEach((n: any) => {
-        const type: string = n.getData('type') || 'WITNESS';
-        const r = RING[type] ?? 700;
-        if (r === 0) { n.setPosition({ x: 0, y: 0 }); return; }
-        counts[type] = (counts[type] || 0) + 1;
-      });
-      const indices: Record<string, number> = {};
-      const totals: Record<string, number> = { ...counts };
-      ogma.getNodes().forEach((n: any) => {
-        const type: string = n.getData('type') || 'WITNESS';
-        const r = RING[type] ?? 700;
-        if (r === 0) return;
-        const idx = indices[type] = (indices[type] || 0) + 1;
-        const total = totals[type] || 1;
-        const angle = (idx / total) * 2 * Math.PI;
-        n.setPosition({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
-      });
-
-      return ogma.layouts.force({
-        charge: -4000, linkDistance: 250, gravity: 0.05, iterations: 500, locate: false,
+      const rootNode = ogma.getNodes().find((n: any) => n.getData('type') === 'PERSON');
+      return ogma.layouts.hierarchical({
+        direction: 'LR',
+        roots: rootNode ? [rootNode.getId()] : [],
+        nodeDistance: 60,
+        levelDistance: 180,
+        locate: false,
       });
     }).then(() => {
       if (nodes.length > 0) setTimeout(() => ogma.view.locateGraph({ padding: 150, duration: 1000 }), 300);
